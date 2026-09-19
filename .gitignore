@@ -1,0 +1,6 @@
+train_images/
+test_images/
+venv/
+__pycache__/
+*.pyc
+*.npy
