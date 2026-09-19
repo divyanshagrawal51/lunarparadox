@@ -225,7 +225,9 @@ def main():
         np.save(f"oof_{a.tag}.npy", oof)
         np.save(f"testprob_{a.tag}.npy", test_p)
         np.save(f"ylabels_{a.tag}.npy", y_all)
-        print(f"saved oof_{a.tag}.npy, testprob_{a.tag}.npy, ylabels_{a.tag}.npy for ensembling")
+        with open(f"threshold_{a.tag}.txt", "w") as fh:
+            fh.write(str(thr))
+        print(f"saved oof_{a.tag}.npy, testprob_{a.tag}.npy, ylabels_{a.tag}.npy, threshold_{a.tag}.txt")
 
 
 if __name__ == "__main__":

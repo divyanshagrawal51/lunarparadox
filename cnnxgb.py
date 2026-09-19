@@ -8,7 +8,7 @@ from sklearn.metrics import balanced_accuracy_score
 from xgboost import XGBClassifier
 from tqdm import tqdm
 
-from train_predict import LunarDS, find_col, make_model, DEV
+from train import LunarDS, find_col, make_model, DEV
 
 
 def best_threshold(y, p):
