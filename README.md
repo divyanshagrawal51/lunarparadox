@@ -27,14 +27,10 @@ along the sun axis, before vs. after rotation, on a sample of images.
 
 ## Result
 
-**Final OOF balanced accuracy: 0.6564** (stacked ensemble of 5 ResNet18/34 runs)
+**Final OOF balanced accuracy: 0.6524** (ensemble of ResNet18 + ResNet34, 5-fold each)
 
-| Stage | Balanced accuracy |
-|---|---|
-| Initial baseline | 0.604 |
-| Best single model (ResNet18) | 0.651 |
-| Simple ensemble (5 models, averaged) | 0.654 |
-| Stacked ensemble (logistic regression meta-learner) | **0.656** |
+`submission.csv` is fully reproducible from the saved checkpoints via
+`inference.py --stack` (verified: predictions match exactly).
 
 ## Files
 
@@ -46,15 +42,17 @@ along the sun axis, before vs. after rotation, on a sample of images.
   5-fold CV, reflect-pad rotation normalization, vertical-flip-only
   augmentation, threshold tuned on OOF predictions, TTA at inference. Saves
   per-fold checkpoints, OOF/test probabilities, and the tuned threshold.
-- **`inference.py`** — loads saved checkpoints for a given `--tag` and runs
-  prediction only, no training required.
-- **`cnn_xgb.py`** — alternative approach: CNN embeddings + XGBoost.
-  Underperformed the CNN's own head (0.563 vs 0.65+).
+- **`inference.py`** — loads saved checkpoints and runs prediction only, no
+  training required. `--tag <name>` for a single model, `--stack` to combine
+  multiple models via the saved ensemble strategy (reproduces `submission.csv`).
+- **`cnn_xgb.py`** — alternative approach tried: CNN embeddings + XGBoost.
+  Underperformed the CNN's own head (0.56 vs 0.65+), not used in the final result.
 - **`ensemble.py`** — simple average of multiple saved runs.
-- **`stack.py`** — logistic-regression meta-learner over saved runs; the
-  final submission.
+- **`stack.py`** — combines multiple runs, choosing between a logistic-regression
+  meta-learner and simple averaging (whichever scores higher on OOF), and
+  saves the chosen strategy to `stack_model.joblib` for `inference.py` to reuse.
 - **`finalize.py`** — compares all saved runs and builds a submission from
-  the best one or an ensemble.
+  the best single one, if needed.
 
 ## Usage
 
@@ -65,28 +63,31 @@ python train.py --train_dir ./train_images --train_meta train_metadata.csv \
     --folds 5 --epochs 12 --tag mymodel
 ```
 
-Run inference only, from saved checkpoints:
+Combine multiple runs into a final ensemble:
 ```bash
-python inference.py --test_dir ./test_images --test_meta test_metadata.csv \
-    --tag mymodel --out submission.csv
+python stack.py --tags model1 model2 --test_meta test_metadata.csv --out submission.csv
 ```
 
-Combine multiple runs:
+Reproduce `submission.csv` from saved checkpoints only (no training):
 ```bash
-python ensemble.py --tags mymodel othermodel --test_meta test_metadata.csv
-python stack.py --test_meta test_metadata.csv
+python inference.py --test_dir ./test_images --test_meta test_metadata.csv \
+    --stack --out submission.csv
 ```
 
 ## Model weights
 
-`model_resnet18_v3_fold{0-4}.pt` (5-fold ResNet18, 18 epochs) — download:
-**[[LINK](https://drive.google.com/drive/folders/1i73eBbDFNr2qUK7OgwL7C6PSqsWpyb1h?usp=drive_link)]**
+`model_resnet18_final_fold{0-4}.pt` and `model_resnet34_final_fold{0-4}.pt`
+(5-fold each, 12 epochs) plus `stack_model.joblib` (the ensembling strategy) —
+download: **[[LINK](https://drive.google.com/drive/folders/1i73eBbDFNr2qUK7OgwL7C6PSqsWpyb1h?usp=drive_link)]**
 
-Note: the final submission is a stacked ensemble of 5 separate training
-runs, but checkpoint-saving was only added partway through experimentation —
-so only this one run's weights are available here. This run alone scores
-0.6447 balanced accuracy (via `inference.py`); the full ensemble (0.6564)
-requires re-running `train.py` for the other backbone/epoch variants.
+These are the exact weights used to produce `submission.csv`; running
+`inference.py --stack` with these files reproduces it exactly.
+
+## Hardware requirements
+
+- GPU strongly recommended (trained on a single consumer NVIDIA GPU, ~25-30
+  min per 5-fold training run at 12 epochs). CPU inference works but is slower.
+- ~2GB disk for model checkpoints, ~1GB for the dataset.
 
 ## Requirements
 
